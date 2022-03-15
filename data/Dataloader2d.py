@@ -103,9 +103,3 @@ class MonoMedDataSets2DTest(MonoMedDataSets2D):
         }
 
         return sample
-
-if __name__ == '__main__':
-    data = MonoMedDataSets2D('/raid0/myk/Y064/Dataset', file_mode = 'NPY_train',data_type='CT', adjacent_layer=1)
-    data_dl = torch.utils.data.DataLoader(data, 1, False, num_workers= 1)
-    for i, sample in enumerate(data_dl):
-        print(sample['image'].shape)
