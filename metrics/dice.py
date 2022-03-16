@@ -12,3 +12,9 @@ def Compute_MeanDice(y_pred: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     denominator = (inputs + target).sum(dim=noreducedim)
     dices = (2 * intersect + 1e-6) / (denominator + 1e-6)
     return dices.mean().item()
+
+def DiceCoefficient(y_pred, y_true, smooth=1e-6):
+    y_true_f = torch.flatten(y_true)
+    y_pred_f = torch.flatten(y_pred)
+    intersection = torch.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)

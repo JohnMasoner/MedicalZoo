@@ -63,6 +63,7 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
             np.ndarray
         '''
         if self.adjacent_layer is not None:
+            assert self.adjacent_layer >= 0, 'adjacent_layer must be >= 0'
             filename_name = filename.split('/')[-1].split('.')[0]
             filename_dir = os.path.dirname(filename)
             assert filename_name.isdigit(), 'Filename must be a number'
@@ -85,6 +86,7 @@ class MonoMedDataSets2DTest(MonoMedDataSets2D):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
         self.inputs = sorted(glob.glob(os.path.join(self.file_dir,f'*/{data_type}/')))
+        self.adjacent_layer = None
 
     def __getitem__(self, idx):
         label_list = [os.path.join(self.label[idx],f'{str(i)}.npy') for i in range(len(glob.glob(os.path.join(self.label[idx],'*'))))]
@@ -103,3 +105,9 @@ class MonoMedDataSets2DTest(MonoMedDataSets2D):
         }
 
         return sample
+
+if __name__ == '__main__':
+    dataset = MonoMedDataSets2DTest(file_dir='/raid0/myk/Y064/Dataset', file_mode='NPY_val', data_type='CT')
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1)
+    for idx, sample in enumerate(dataloader):
+        print(sample['image'][0].shape)
