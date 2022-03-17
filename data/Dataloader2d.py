@@ -60,7 +60,7 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
         Args:
             filename(str): filename of the file
         Return:
-            np.ndarray
+            np.ndarray: if adjacent_layer is not None, return the adjacent layer data size:adjacent_layer,W,H. else return 1,W,H
         '''
         if self.adjacent_layer is not None:
             assert self.adjacent_layer >= 0, 'adjacent_layer must be >= 0'
@@ -82,6 +82,9 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
         return np.vstack(data).astype(float)
 
 class MonoMedDataSets2DTest(MonoMedDataSets2D):
+    '''
+    A 3D datasets dataloder to be better calculating the dice coefficient.
+    '''
     def __init__(self, file_dir, file_mode = None,data_type=None):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
@@ -114,11 +117,11 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
     label path: self.file_dir/{file_mode}/label/*.npy
     input path: self.file_dir/{file_mode}/{data_type}/*.npy
     '''
-    def __init__(self, file_dir, modal:list=None, transform = None, file_mode = None, data_type = None, adjacent_layer = None):
+    def __init__(self, file_dir, transform = None, file_mode = None, data_type = None, adjacent_layer = None):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/*')))
 
-        self.modal = modal
+        self.data_type = data_type
         self.transform = transform
         self.adjacent_layer = adjacent_layer
 
@@ -128,7 +131,7 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
     def __getitem__(self, idx):
         sample = {}
         label = self.Normalization(self.ReadData(self.label[idx]))
-        for i in self.modal:
+        for i in self.data_type:
             sample[i] = self.Normalization(self.ReadData(self.MultiModalPath(i)[idx]))
         sample['label'] = label
 
@@ -137,14 +140,37 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
                 sample[i] = self.transform(sample[i])
         return sample
 
-    def MultiModalPath(self, modal):
+    def MultiModalPath(self, modal:str=None)->list:
         return sorted(glob.glob(os.path.join(self.file_dir, f'*/{modal}/*')))
 
 
+class MultiMedDatasets2DTest(MonoMedDataSets2DTest):
+    def __init__(self, file_dir:str=None, file_mode = None, data_type = None):
+        self.file_dir = os.path.join(file_dir, file_mode)
+        self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
+        self.adjacent_layer = None
+        self.data_type = data_type
+
+    def __getitem__(self, idx):
+        sample = {}
+        sample['label'] = self.Read3DData(self.label[idx])
+        for i in self.data_type:
+            sample[i] = self.Read3DData(self.label[idx].replace('label',i))
+
+        return sample
+
+    def Read3DData(self, modal_path):
+        data_list = [os.path.join(modal_path,f'{str(i)}.npy') for i in range(len(glob.glob(os.path.join(modal_path,'*'))))]
+        data = []
+        for idx, i in enumerate(data_list):
+            data.append(self.ReadData(i)[np.newaxis,np.newaxis,:])
+        data = self.Normalization(np.vstack(data), 4)
+
+        return data
 
 
 if __name__ == '__main__':
-    dataset = MultiMedDatasets2D(file_dir='/raid0/myk/Y064/Dataset', file_mode='NPY_val', modal=['CT','T1'])
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2)
+    dataset = MultiMedDatasets2DTest(file_dir='/raid0/myk/Y064/Dataset', file_mode='NPY_val', data_type=['CT','T1'])
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1)
     for idx, sample in enumerate(dataloader):
         print(sample['T1'].shape)

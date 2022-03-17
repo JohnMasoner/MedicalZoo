@@ -13,7 +13,15 @@ from data import Dataloader2d
 from utils.logger import Logger
 from metrics.dice import Compute_MeanDice, DiceCoefficient
 
-def validate(config, model, epoch):
+def validate(config, model, epoch, val_dice):
+    '''
+    Validation the model
+    Args:
+        config[ConfigParser]: config parser
+        model[Model]: model to validate
+        epoch[int]: epoch number to be better save model
+        val_dice[int]: dice value to saveing the best model
+    '''
     dice = 0
     validate_load = dataset(config, 'test')
     model.eval()
@@ -28,21 +36,26 @@ def validate(config, model, epoch):
                 outputs = model(i.unsqueeze(0))
                 preds.append(outputs[np.newaxis,:])
             preds = torch.cat(preds, axis=0)[:,0,:]
-            dice += DiceCoefficient(labels, (preds.sigmoid().sigmoid()).float())
+            dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
     print(f'Dice is {dice/len(validate_load)}')
 
     save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], "%s_checkpoint_%04d.pt" % (config['DEFAULT']['Name'], epoch))
     # store best loss and save a model checkpoint
-    torch.save({"arch": "Mono_2d", "optimizer": model.state_dict()},save_path,)
+    torch.save({"arch": "Mono_2d", "model": model.state_dict()},save_path,)
     print("Saved checkpoint to: %s" % save_path)
-
+    if dice/len(validate_load) > val_dice:
+        save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], f"{config['DEFAULT']['Name']}_checkpoint_best_model.pt")
+        torch.save({"arch": "Mono_2d", "model": model.state_dict()},save_path,)
+        return dice/len(validate_load)
+    else:
+        return val_dice
 
 def trainer(config):
     os.environ['CUDA_VISIBLE_DEVICES'] = config['DEFAULT']['GPU']
     os.makedirs("{}/{}".format(config['Paths']['checkpoint_dir'], config['DEFAULT']['name']), exist_ok=True)
 
     model = network(config).train()
-    # model.train()
+    val_dice = 0.0
 
     criterion_dice = monai.losses.DiceLoss()
     criterion_bce = torch.nn.BCELoss()
@@ -71,21 +84,17 @@ def trainer(config):
             loss = dice_loss + bce_loss
 
             optimizer.zero_grad()
-
             loss.backward()
-
             optimizer.step()
 
             # logger
             logger.log(
                 losses = {'total_loss': loss, 'dice_loss': dice_loss, 'bce_loss': bce_loss},
-                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()})
+                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()}
+            )
 
         if epoch % 2 == 0:
-            validate(config, model, epoch)
-
-
-
+            val_dice = validate(config, model, epoch, val_dice)
 
 if __name__ == "__main__":
     trainer(config)
