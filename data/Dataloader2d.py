@@ -106,8 +106,45 @@ class MonoMedDataSets2DTest(MonoMedDataSets2D):
 
         return sample
 
+class MultiMedDatasets2D(MonoMedDataSets2DTest):
+    '''
+    A dataloader to read Multi-Modal Dataset
+
+    For example, typical input data can be a list of dictionaries:
+    label path: self.file_dir/{file_mode}/label/*.npy
+    input path: self.file_dir/{file_mode}/{data_type}/*.npy
+    '''
+    def __init__(self, file_dir, modal:list=None, transform = None, file_mode = None, data_type = None, adjacent_layer = None):
+        self.file_dir = os.path.join(file_dir, file_mode)
+        self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/*')))
+
+        self.modal = modal
+        self.transform = transform
+        self.adjacent_layer = adjacent_layer
+
+    def __len(self) -> int:
+        return len(self.label)
+
+    def __getitem__(self, idx):
+        sample = {}
+        label = self.Normalization(self.ReadData(self.label[idx]))
+        for i in self.modal:
+            sample[i] = self.Normalization(self.ReadData(self.MultiModalPath(i)[idx]))
+        sample['label'] = label
+
+        if self.transform:
+            for i in list(sample.keys())[:-1]:
+                sample[i] = self.transform(sample[i])
+        return sample
+
+    def MultiModalPath(self, modal):
+        return sorted(glob.glob(os.path.join(self.file_dir, f'*/{modal}/*')))
+
+
+
+
 if __name__ == '__main__':
-    dataset = MonoMedDataSets2DTest(file_dir='/raid0/myk/Y064/Dataset', file_mode='NPY_val', data_type='CT')
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1)
+    dataset = MultiMedDatasets2D(file_dir='/raid0/myk/Y064/Dataset', file_mode='NPY_val', modal=['CT','T1'])
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=2)
     for idx, sample in enumerate(dataloader):
-        print(sample['image'][0].shape)
+        print(sample['T1'].shape)

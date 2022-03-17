@@ -16,7 +16,7 @@ class Logger(object):
         batch_epochs:int,
         port:int=8889
     ):
-        self.viz = Visdom(port=port)
+        self.viz = Visdom(port=port, use_incoming_socket=False)
         self.n_epochs = n_epochs
         self.batch_epochs = batch_epochs
         self.batch = 0
