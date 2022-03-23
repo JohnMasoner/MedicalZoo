@@ -3,30 +3,16 @@ import torch
 import configparser
 import sys
 import os
-import cv2
 import numpy as np
 
-from net.common import network
+from new_net import cross_teach, cross_stu
+from new_net.common import network
 from optimizer.common import optimizer_common
 from data.common import dataset, MultiLoader
 from tqdm import tqdm
 from data import Dataloader2d
 from utils.logger import Logger
 from metrics.dice import Compute_MeanDice, DiceCoefficient
-def change(data):
-    return (data > 0.5).float()
-
-def save_data(path,idx,data):
-    lab_path = os.path.join(path,'lab')
-    pred_path = os.path.join(path,'pred')
-    if not os.path.exists(lab_path):
-        os.makedirs(lab_path)
-        os.makedirs(pred_path)
-    lab = change(data[0][0]).permute(2,1,0).cpu().numpy() * 255
-    img = change(data[1][0]).permute(2,1,0).cpu().numpy() * 255
-    # print(lab.shape)
-    cv2.imwrite(os.path.join(lab_path,f'{str(idx)}.png'),lab)
-    cv2.imwrite(os.path.join(pred_path,f'{str(idx)}.png'),img)
 
 def validate(config, model, epoch, val_dice):
     '''
@@ -50,11 +36,11 @@ def validate(config, model, epoch, val_dice):
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
-            # for idx, i in enumerate(inputs):
-                # outputs = model(i[:,idx,:])
+            # for i in inputs[:,:1,:]:
+                # x0, x1, x2, x3, x4, u4, u3, u2, u1, outputs = model(i.unsqueeze(0))
                 # preds.append(outputs[np.newaxis,:])
             for i in range(inputs.shape[1]):
-                outputs = model(inputs[:,i,:])
+                x0, x1, x2, x3, x4, u4, u3, u2, u1, outputs = model(inputs[:,i,:1])
                 preds.append(outputs[np.newaxis,:])
             preds = torch.cat(preds, axis=0)[:,0,:]
             dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
@@ -66,7 +52,7 @@ def validate(config, model, epoch, val_dice):
     print("Saved checkpoint to: %s" % save_path)
     if dice/len(validate_load) > val_dice:
         save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], f"{config['DEFAULT']['Name']}_checkpoint_best_model.pt")
-        torch.save({"acc":dice/len(validate_load),"arch": "Mono_2d", "model": model.state_dict()},save_path,)
+        torch.save({"arch": "Mono_2d", "model": model.state_dict()},save_path,)
         return dice/len(validate_load)
     else:
         return val_dice
@@ -75,28 +61,32 @@ def trainer(config):
     os.environ['CUDA_VISIBLE_DEVICES'] = config['DEFAULT']['GPU']
     os.makedirs("{}/{}".format(config['Paths']['checkpoint_dir'], config['DEFAULT']['name']), exist_ok=True)
 
-    model = network(config).train()
+    model_teach, model_stu = network(config)
+    model_teach = model_teach.train()
+    model_stu   = model_stu.train()
     if config['Model']['LoadModel']:
         checkpoint = torch.load(config['Model']['LoadModel'])
-        model.load_state_dict(checkpoint["model"])
-        acc = 0 if 'acc' not in  checkpoint else checkpoint['acc']
+        model_stu.load_state_dict(checkpoint["model"])
         print(f'Loading checkpoint')
-        val_dice = validate(config, model, 0, acc)
+        val_dice = validate(config, model_stu, 0, 0)
     val_dice = 0.0
 
     criterion_dice = monai.losses.DiceLoss()
     criterion_bce = torch.nn.BCELoss()
+    criterion_huber = torch.nn.SmoothL1Loss()
     dice_loss_val = 0
     bce_loss_val = 0
+    huber_loss_val = 0
     loss_val = 0
 
     # optimizer
-    optimizer, lr_scheduler = optimizer_common(config, model)
+    optimizer_teach, lr_scheduler_teach = optimizer_common(config, model_teach)
+    optimizer_stu, lr_scheduler_stu = optimizer_common(config, model_stu)
 
     # dataset loader
     train_dataload = dataset(config, 'train')
-
-    logger = Logger(int(config['Training']['MaxEpoch']), len(train_dataload))
+    logger_step = 1
+    logger = Logger(int(config['Training']['MaxEpoch']), len(train_dataload), env= config['DEFAULT']['name'])
     for epoch in range(int(config['Training']['MaxEpoch'])):
         print("Epoch {}/{}".format(epoch+1, config['Training']['MaxEpoch']))
         print("-" * 10)
@@ -109,29 +99,51 @@ def trainer(config):
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)
 
-            outputs = model(inputs)
-            assert (outputs.shape == labels.shape)
-            dice_loss = criterion_dice(outputs.sigmoid(), labels)
-            bce_loss = criterion_bce(outputs.sigmoid(), labels)
-            loss = dice_loss + bce_loss
-            dice = DiceCoefficient((outputs.sigmoid()>0.5).float(), labels)
+            x0, x1, x2, x3, x4, u4, u3, u2, u1, logits = model_stu(inputs[:,:1,:])
+            u4_, u3_, u2_, u1_, logits_ = model_teach(inputs[:,1:,:], x0, x1, x2, x3)
+
+            ###################
+            # teach model losss
+            ###################
+            dice_loss_teach = criterion_dice(logits_.sigmoid(), labels)
+            bce_loss_teach = criterion_bce(logits_.sigmoid(), labels)
+            huber_loss = (criterion_huber(u4,u4_) + criterion_huber(u3,u3_) + criterion_huber(u2,u2_) + criterion_huber(u1,u1_))
+            loss_teach = dice_loss_teach + bce_loss_teach + huber_loss
+            optimizer_teach.zero_grad()
+            loss_teach.backward(retain_graph=True)
+            optimizer_teach.step()
+
+            ###################
+            # stu model losssss
+            ###################
+            u4, u4_ = u4.detach(), u4_.detach()
+            u3, u3_ = u3.detach(), u3_.detach()
+            u2, u2_ = u2.detach(), u2_.detach()
+            u1, u1_ = u1.detach(), u1_.detach()
+            dice_loss_stu = criterion_dice(logits.sigmoid(), labels)
+            bce_loss_stu = criterion_bce(logits.sigmoid(), labels)
+            huber_loss = (criterion_huber(u4,u4_) + criterion_huber(u3,u3_) + criterion_huber(u2,u2_) + criterion_huber(u1,u1_))
+            loss_stu = dice_loss_stu + bce_loss_stu + huber_loss
+            dice = DiceCoefficient((logits.sigmoid()>0.5).float(), labels)
+            optimizer_stu.zero_grad()
+            loss_stu.backward()
+            optimizer_stu.step()
+            # optimizer_teach.step()
             # for Recoder
             # dice_loss_val += dice_loss
             # bce_loss_val + bce_loss
             # loss_val += loss
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
             # logger
             logger.log(
-                losses = {'total_loss': loss, 'dice_loss': dice_loss, 'bce_loss': bce_loss, 'dice':dice},
-                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()}
+                losses = {'dice_teach':dice_loss_teach, 'bce_teach':bce_loss_teach, 'huber_loss':huber_loss, 'dice_stu':dice_loss_stu, 'bce_stu':bce_loss_stu,'dice':dice},
+                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (logits.sigmoid()>0.5).float()}
             )
-        lr_scheduler.step()
+            logger_step += 1
+        lr_scheduler_teach.step()
+        lr_scheduler_stu.step()
         if epoch % 2 == 0:
-            val_dice = validate(config, model, epoch, val_dice)
+            val_dice = validate(config, model_stu, epoch, val_dice)
 
 if __name__ == "__main__":
     trainer(config)

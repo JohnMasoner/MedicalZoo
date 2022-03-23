@@ -3,7 +3,9 @@ import numpy as np
 import glob
 import torch
 import random
+import monai
 
+from transforms import Transforms
 class MonoMedDataSets2D(torch.utils.data.Dataset):
     '''
     A dataloader to read Mono-Modal Dataset
@@ -24,7 +26,7 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/*')))
         self.inputs = sorted(glob.glob(os.path.join(self.file_dir,f'*/{data_type}/*')))
-        self.transform = transform
+        self.transform = monai.transforms.Compose([monai.transforms.RandRotated(keys=('image','label')), monai.transforms.RandZoomd(keys=('image','label'))])
         self.adjacent_layer = adjacent_layer
 
     def __len__(self) -> int:
@@ -38,7 +40,8 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
             'label':label,
         }
         if self.transform:
-            sample['image'] = self.transform(sample['image'])
+            sample = Transforms.RandCropData(320)(sample)
+            # sample = self.transform(sample)
         return sample
 
     def Normalization(self, data, dim_threshold:int=3) -> torch.Tensor:
@@ -136,8 +139,17 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
         sample['label'] = label
 
         if self.transform:
-            for i in list(sample.keys())[:-1]:
-                sample[i] = self.transform(sample[i])
+            sample = self.transform(sample)
+        # for i in list(self.data_type):
+            # sample[i] = monai.transforms.RandGaussianNoise()(sample[i])
+            # sample[i] = monai.transforms.RandCoarseShuffle(10,(16,16))(sample[i])
+            # sample[i] = monai.transforms.RandStdShiftIntensity((1,2))(sample[i])
+        # if random.random() > 0.5:
+            # for i in list(sample.keys()):
+                # sample[i] = monai.transforms.Rotate90()(sample[i])
+        # if random.random() > 0.5:
+            # for i in list(sample.keys()):
+                # sample[i] = monai.transforms.Flip()(sample[i])
         return sample
 
     def MultiModalPath(self, modal:str=None)->list:

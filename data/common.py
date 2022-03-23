@@ -1,7 +1,8 @@
 import monai
 import torch
 import re
-
+from data import Dataloader2d
+from transforms import Transforms
 def dataset(config, set_type):
     '''
     Choose a dataset to train or test
@@ -16,14 +17,14 @@ def dataset(config, set_type):
     assert set_type in ['train','test'], 'Please check your dataset type, make sure set_type is train or test'
 
     data_type = config['Data']['DataType']
-    data_type = data_type if len(list(filter(re.sub('[!@#$%^&*]', '', data_type).split(',')))) == 1 else list(filter(re.sub('[!@#$%^&*]', '', data_type).split(',')))
+    data_type = data_type if len(list(re.sub('[!@#$%^&*]', '', data_type).split(','))) == 1 else list(re.sub('[!@#$%^&*]', '', data_type).split(','))
+    print(data_type)
 
     if dim == '2':
         if isinstance(data_type, str): # to judge the mono-modal or multi-modal, if mono-modal is True, or multi-modal is False
-            from data import Dataloader2d
             if set_type == 'train':
                 adjacent_layer =None if config['Data']['AdjacentLayer'].lower() == 'none' or not config['Data']['AdjacentLayer'].isdigit() else int(config['Data']['AdjacentLayer'])
-                train_dataset = Dataloader2d.MonoMedDataSets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer)
+                train_dataset = Dataloader2d.MonoMedDataSets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer )
                 train_dataload = torch.utils.data.DataLoader(train_dataset, batch_size= int(config['Data']['BatchSize']), num_workers= int(config['Data']['NumWorkers']), shuffle = True)
                 return train_dataload
 
@@ -36,7 +37,7 @@ def dataset(config, set_type):
         elif isinstance(data_type, list): # to judge the mono-modal or multi-modal, if multi-modal is True
             if set_type == 'train':
                 adjacent_layer =None if config['Data']['AdjacentLayer'].lower() == 'none' or not config['Data']['AdjacentLayer'].isdigit() else int(config['Data']['AdjacentLayer'])
-                train_dataset = Dataloader2d.MultiMedDatasets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer)
+                train_dataset = Dataloader2d.MultiMedDatasets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer, transform=Transforms.RandCropData(320))
                 train_dataload = torch.utils.data.DataLoader(train_dataset, batch_size=int(config['Data']['BatchSize']), num_workers = int(config['Data']['NumWorkers']), shuffle=True)
                 return train_dataload
             elif set_type == 'test':
@@ -49,3 +50,15 @@ def dataset(config, set_type):
             raise Exception('Error Check the Code')
     else:
         raise ValueError('Error Data Dimension, Please check your config file')
+
+def MultiLoader(data_keys, data, types = 'train'):
+    sample = {}
+    data_keys = list(data.keys())
+    data_keys.remove('label')
+    for i in data_keys:
+        sample[i] = data[i].type(torch.FloatTensor).cuda(non_blocking=True)
+    if types == 'train':
+        data = torch.cat([sample[i] for i in list(sample.keys())], axis=1)
+    else:
+        data = torch.cat([sample[i] for i in list(sample.keys())], axis=2)
+    return data

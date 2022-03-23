@@ -14,9 +14,10 @@ class Logger(object):
         self,
         n_epochs:int,
         batch_epochs:int,
-        port:int=8889
+        port:int=8889,
+        env:str='main'
     ):
-        self.viz = Visdom(port=port, use_incoming_socket=False)
+        self.viz = Visdom(port=port, use_incoming_socket=False, env=env)
         self.n_epochs = n_epochs
         self.batch_epochs = batch_epochs
         self.batch = 0
@@ -41,8 +42,7 @@ class Logger(object):
                 if loss_name not in self.loss_window:
                     self.loss_window[loss_name] = self.viz.line(X = np.array([self.batch]), Y=np.array([loss]), opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
                 else:
-                    self.viz.line(X = np.array([self.batch]), Y=np.array([loss]), win=self.loss_window[loss_name], update='append')
-                self.losses[loss_name] = 0.0
+                    self.viz.line(X = np.array([self.batch]), Y=np.array([loss]), win=self.loss_window[loss_name], update='append',opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
 
             # self.epoch += 1
             self.batch += 1
