@@ -26,7 +26,8 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/*')))
         self.inputs = sorted(glob.glob(os.path.join(self.file_dir,f'*/{data_type}/*')))
-        self.transform = monai.transforms.Compose([monai.transforms.RandRotated(keys=('image','label')), monai.transforms.RandZoomd(keys=('image','label'))])
+        # self.transform = monai.transforms.Compose([monai.transforms.RandRotated(keys=('image','label')), monai.transforms.RandZoomd(keys=('image','label'))])
+        self.transform = transform
         self.adjacent_layer = adjacent_layer
 
     def __len__(self) -> int:
@@ -40,7 +41,7 @@ class MonoMedDataSets2D(torch.utils.data.Dataset):
             'label':label,
         }
         if self.transform:
-            sample = Transforms.RandCropData(320)(sample)
+            sample = self.transform(sample)
             # sample = self.transform(sample)
         return sample
 

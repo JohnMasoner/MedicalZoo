@@ -3,6 +3,7 @@ import torch
 import re
 from data import Dataloader2d
 from transforms import Transforms
+from transforms.common import transform
 def dataset(config, set_type):
     '''
     Choose a dataset to train or test
@@ -24,7 +25,7 @@ def dataset(config, set_type):
         if isinstance(data_type, str): # to judge the mono-modal or multi-modal, if mono-modal is True, or multi-modal is False
             if set_type == 'train':
                 adjacent_layer =None if config['Data']['AdjacentLayer'].lower() == 'none' or not config['Data']['AdjacentLayer'].isdigit() else int(config['Data']['AdjacentLayer'])
-                train_dataset = Dataloader2d.MonoMedDataSets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer )
+                train_dataset = Dataloader2d.MonoMedDataSets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer, transform = transform(config))
                 train_dataload = torch.utils.data.DataLoader(train_dataset, batch_size= int(config['Data']['BatchSize']), num_workers= int(config['Data']['NumWorkers']), shuffle = True)
                 return train_dataload
 
