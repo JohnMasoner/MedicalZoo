@@ -11,6 +11,9 @@
       <a href="#about-the-project">About The Project</a>
     </li>
     <li>
+      <a href="#recent-updates">Recent Updates</a>
+    </li>
+    <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#installation">Installation</a></li>

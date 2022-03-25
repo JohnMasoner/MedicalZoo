@@ -12,4 +12,4 @@ if __name__ == '__main__':
         elif sys.argv[2] == '2':
             cross_model.trainer(config)
         else:
-            raise
+            raise ValueError('Invalid Training Type')
