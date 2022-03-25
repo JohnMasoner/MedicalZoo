@@ -7,6 +7,8 @@ config.read(sys.argv[1])
 if __name__ == '__main__':
     import torch
     with torch.autograd.set_detect_anomaly(True):
+        if len(sys.argv) < 2:
+            raise RuntimeError('Please provide at least two arguments')
         if sys.argv[2] == '1':
             train.trainer(config)
         elif sys.argv[2] == '2':

@@ -9,6 +9,7 @@ import numpy as np
 from net.common import network
 from optimizer.common import optimizer_common
 from data.common import dataset, MultiLoader
+from losses.common import Losses
 from tqdm import tqdm
 from data import Dataloader2d
 from utils.logger import Logger
@@ -50,9 +51,6 @@ def validate(config, model, epoch, val_dice):
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
-            # for idx, i in enumerate(inputs):
-                # outputs = model(i[:,idx,:])
-                # preds.append(outputs[np.newaxis,:])
             for i in range(inputs.shape[1]):
                 outputs = model(inputs[:,i,:])
                 preds.append(outputs[np.newaxis,:])
@@ -76,19 +74,16 @@ def trainer(config):
     os.makedirs("{}/{}".format(config['Paths']['checkpoint_dir'], config['DEFAULT']['name']), exist_ok=True)
 
     model = network(config).train()
+    val_dice = 0.0
     if config['Model']['LoadModel']:
         checkpoint = torch.load(config['Model']['LoadModel'])
         model.load_state_dict(checkpoint["model"])
         acc = 0 if 'acc' not in  checkpoint else checkpoint['acc']
         print(f'Loading checkpoint')
         val_dice = validate(config, model, 0, acc)
-    val_dice = 0.0
 
-    criterion_dice = monai.losses.DiceLoss()
-    criterion_bce = torch.nn.BCELoss()
-    dice_loss_val = 0
-    bce_loss_val = 0
-    loss_val = 0
+    # losses
+    criterion = Losses(config)   # criterion loss funciton
 
     # optimizer
     optimizer, lr_scheduler = optimizer_common(config, model)
@@ -111,14 +106,10 @@ def trainer(config):
 
             outputs = model(inputs)
             assert (outputs.shape == labels.shape)
-            dice_loss = criterion_dice(outputs.sigmoid(), labels)
-            bce_loss = criterion_bce(outputs.sigmoid(), labels)
-            loss = dice_loss + bce_loss
+            total_loss = criterion(outputs, labels)
+            loss = sum(total_loss.values())
             dice = DiceCoefficient((outputs.sigmoid()>0.5).float(), labels)
-            # for Recoder
-            # dice_loss_val += dice_loss
-            # bce_loss_val + bce_loss
-            # loss_val += loss
+            total_loss['loss'],total_loss['dice'] = loss, dice
 
             optimizer.zero_grad()
             loss.backward()
@@ -126,7 +117,7 @@ def trainer(config):
 
             # logger
             logger.log(
-                losses = {'total_loss': loss, 'dice_loss': dice_loss, 'bce_loss': bce_loss, 'dice':dice},
+                losses = total_loss,
                 images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()}
             )
         lr_scheduler.step()

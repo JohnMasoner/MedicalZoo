@@ -19,7 +19,6 @@ def dataset(config, set_type):
 
     data_type = config['Data']['DataType']
     data_type = data_type if len(list(re.sub('[!@#$%^&*]', '', data_type).split(','))) == 1 else list(re.sub('[!@#$%^&*]', '', data_type).split(','))
-    print(data_type)
 
     if dim == '2':
         if isinstance(data_type, str): # to judge the mono-modal or multi-modal, if mono-modal is True, or multi-modal is False
