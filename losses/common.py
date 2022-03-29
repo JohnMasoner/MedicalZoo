@@ -30,9 +30,9 @@ class Losses(object):
 
         self.loss_dict = loss_dict
 
-    def __call__(self,predictions:torch.Tensor, labels:torch.Tensor):
+    def __call__(self,predictions:torch.Tensor, labels:torch.Tensor, weights:int=1):
         predictions = predictions.sigmoid()
         total_loss_dict = {}
         for i in self.loss_dict.keys():
-            total_loss_dict[i+'_loss'] = self.loss_dict[i](predictions, labels)
+            total_loss_dict[i+'_loss'] = self.loss_dict[i](predictions, labels) * weights
         return total_loss_dict

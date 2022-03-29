@@ -14,20 +14,6 @@ from tqdm import tqdm
 from data import Dataloader2d
 from utils.logger import Logger
 from metrics.dice import Compute_MeanDice, DiceCoefficient
-def change(data):
-    return (data > 0.5).float()
-
-def save_data(path,idx,data):
-    lab_path = os.path.join(path,'lab')
-    pred_path = os.path.join(path,'pred')
-    if not os.path.exists(lab_path):
-        os.makedirs(lab_path)
-        os.makedirs(pred_path)
-    lab = change(data[0][0]).permute(2,1,0).cpu().numpy() * 255
-    img = change(data[1][0]).permute(2,1,0).cpu().numpy() * 255
-    # print(lab.shape)
-    cv2.imwrite(os.path.join(lab_path,f'{str(idx)}.png'),lab)
-    cv2.imwrite(os.path.join(pred_path,f'{str(idx)}.png'),img)
 
 def validate(config, model, epoch, val_dice):
     '''
@@ -48,11 +34,12 @@ def validate(config, model, epoch, val_dice):
             if len(data.keys()) > 2:
                 inputs = MultiLoader(data.keys(), data,'val')
             else:
-                inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
+                inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
             for i in range(inputs.shape[1]):
                 outputs = model(inputs[:,i,:])
+                outputs = outputs['MU'][0]
                 preds.append(outputs[np.newaxis,:])
             preds = torch.cat(preds, axis=0)[:,0,:]
             dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
@@ -70,11 +57,7 @@ def validate(config, model, epoch, val_dice):
         return val_dice
 
 def trainer(config):
-    os.environ['CUDA_VISIBLE_DEVICES'] = config['DEFAULT']['GPU']
-    os.makedirs("{}/{}".format(config['Paths']['checkpoint_dir'], config['DEFAULT']['name']), exist_ok=True)
-
-    model = network(config).train()
-    val_dice = 0.0
+    model = network(config).train(); val_dice = 0.0
     if config['Model']['LoadModel']:
         checkpoint = torch.load(config['Model']['LoadModel'])
         model.load_state_dict(checkpoint["model"])
@@ -91,13 +74,12 @@ def trainer(config):
     # dataset loader
     train_dataload = dataset(config, 'train')
 
-    logger = Logger(int(config['Training']['MaxEpoch']), len(train_dataload))
+    logger = Logger(int(config['Training']['MaxEpoch']), len(train_dataload), env=config['DEFAULT']['Name'])
     for epoch in range(int(config['Training']['MaxEpoch'])):
         print("Epoch {}/{}".format(epoch+1, config['Training']['MaxEpoch']))
         print("-" * 10)
         # iterate all data
-        loader = tqdm(train_dataload, desc="training")
-        for idx, data in enumerate(loader):
+        for idx, data in enumerate(tqdm(train_dataload, desc="training")):
             if len(data.keys()) > 2:
                 inputs = MultiLoader(data.keys(), data)
             else:
@@ -105,11 +87,21 @@ def trainer(config):
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)
 
             outputs = model(inputs)
-            assert (outputs.shape == labels.shape)
-            total_loss = criterion(outputs, labels)
-            loss = sum(total_loss.values())
-            dice = DiceCoefficient((outputs.sigmoid()>0.5).float(), labels)
-            total_loss['loss'],total_loss['dice'] = loss, dice
+
+
+            dice, loss = 0,0
+            if len(outputs) > 0:
+                for i in outputs.keys():
+                    total_loss = criterion(outputs[i][0], labels, outputs[i][1])
+                    loss += sum(total_loss.values())
+                outputs = outputs['MU'][0]
+            else:
+                assert (outputs.shape == labels.shape)
+                total_loss = criterion(outputs, labels)
+                dice, loss = DiceCoefficient((outputs.sigmoid()>0.5).float(), labels), sum(total_loss.values())
+                total_loss['loss'],total_loss['dice'] = loss, dice
+
+
 
             optimizer.zero_grad()
             loss.backward()

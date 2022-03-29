@@ -1,9 +1,21 @@
 from step import train, cross_model
 import sys
 import configparser
+import numpy as np
+import torch
+import os
 
 config = configparser.ConfigParser()
 config.read(sys.argv[1])
+
+SEED = 0
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+np.random.seed(SEED)
+
+os.environ['CUDA_VISIBLE_DEVICES'] = config['DEFAULT']['GPU']
+os.makedirs("{}/{}".format(config['Paths']['checkpoint_dir'], config['DEFAULT']['name']), exist_ok=True)
+
 if __name__ == '__main__':
     import torch
     with torch.autograd.set_detect_anomaly(True):
