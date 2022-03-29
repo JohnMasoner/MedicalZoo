@@ -17,5 +17,12 @@ def network(config):
         sys.path.append('..')
         from new_net import cross_teach,cross_stu
         (teach, stu) = cross_teach().cuda(), cross_stu().cuda()
+    elif net == 'multi_loss':
+        import sys
+        sys.path.append('..')
+        from new_net import ModelFuse
+        return ModelFuse.Module(multi_channels=1).cuda()
+    elif net == 'unetr':
+        return monai.networks.nets.UNETR(in_channels=int(config['Model']['in_channels']), out_channels=int(config['Model']['out_channels'], image_size=(32,500,500)).cuda()
     else:
         raise Exception('Unknown network type')

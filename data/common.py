@@ -1,7 +1,7 @@
 import monai
 import torch
 import re
-from data import Dataloader2d
+from data import Dataloader2d, Dataloader3d
 from transforms import Transforms
 from transforms.common import transform
 def dataset(config, set_type):
@@ -48,6 +48,17 @@ def dataset(config, set_type):
                 raise ValueError('Error Set Type')
         else:
             raise Exception('Error Check the Code')
+    elif dim == '3':
+        if set_type == 'train':
+            train_dataset = Dataloader3d.MedDataSets3D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type)
+            train_loader  = torch.utils.data.DataLoader(train_dataset, batch_size=int(config['Data']['BatchSize']), num_workers=int(config['Data']['NumWorkers']), shuffle=True)
+            return train_loader
+        elif set_type == 'test':
+            validate_dataset = Dataloader3d.MedDataSets3D(config['Paths']['file_dir'], file_mode='NPY_val', data_type=data_type)
+            validate_load = torch.utils.data.DataLoader(validate_dataset , batch_size=int(config['Data']['BatchSize']),num_workers=int(config['Data']['NumWorkers']), shuffle=True)
+            return validate_load
+        else:
+            raise ValueError('Error Set Type')
     else:
         raise ValueError('Error Data Dimension, Please check your config file')
 
