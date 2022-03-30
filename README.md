@@ -42,6 +42,7 @@ Of course, no one template will serve all projects since your needs may be diffe
 <!--Recent Updates-->
 ## Recent Updates
 
+* 2022-03-30: Added 3dDataloader
 * 2022-03-25: Added Configuration README
 * 2022-03-24: Added License section and README.md
 * 2022-03-11: Fixed Release Notes
