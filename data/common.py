@@ -71,5 +71,10 @@ def MultiLoader(data_keys, data, types = 'train'):
     if types == 'train':
         data = torch.cat([sample[i] for i in list(sample.keys())], axis=1)
     else:
-        data = torch.cat([sample[i] for i in list(sample.keys())], axis=2)
+        if len(sample.get(next(iter(sample))).shape) == 4:
+            data = torch.cat([sample[i] for i in list(sample.keys())], axis=2)
+        elif len(sample.get(next(iter(sample))).shape) == 5:
+            data = torch.cat([sample[i] for i in list(sample.keys())], axis=2)
+        else:
+            ValueError('Please check the dimensions')
     return data

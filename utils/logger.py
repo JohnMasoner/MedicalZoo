@@ -1,11 +1,13 @@
 import torch
 import numpy as np
+import random
 
 from visdom import Visdom
 
 def tensor2img(x: torch.Tensor) -> np.ndarray:
     image = x[0].cpu().float().numpy()
     image = (image - image.min())/(image.max() - image.min()) *255 if image.max() > 0 else image
+    image = image if len(image.shape) == 3 else image[:,random.randint(0,32-1),:]
     assert len(image.shape) == 3, "Image should have 3 dimensions"
     return image.astype(np.uint8)
 

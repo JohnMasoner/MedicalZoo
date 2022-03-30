@@ -13,7 +13,8 @@ class MedDataSets3D(Dataloader2d.MultiMedDatasets2DTest):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
         self.adjacent_layer = None
-        self.data_type = [i for i in data_type.replace(' ','').split(',')]
+        # self.data_type = [i for i in data_type.replace(' ','').split(',')]
+        self.data_type = data_type
 
     def __getitem__(self, idx):
         sample = {}
