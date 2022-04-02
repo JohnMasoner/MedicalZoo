@@ -34,7 +34,7 @@ def transform(config):
     the common moudule to transform the data
     '''
     transform_type = config['Data']['Transforms']
-    print(transform_type, type(transform_type), len(transform_type))
+    # print(transform_type, type(transform_type), len(transform_type))
     if transform_type is None or len(transform_type) == 0:
         return None
     else:

@@ -158,18 +158,20 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
 
 
 class MultiMedDatasets2DTest(MonoMedDataSets2DTest):
-    def __init__(self, file_dir:str=None, file_mode = None, data_type = None):
+    def __init__(self, file_dir:str=None, file_mode = None, data_type = None, transform= None):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
         self.adjacent_layer = None
         self.data_type = data_type
+        self.transform = transform
 
     def __getitem__(self, idx):
         sample = {}
         sample['label'] = self.Read3DData(self.label[idx])
         for i in self.data_type:
             sample[i] = self.Read3DData(self.label[idx].replace('label',i))
-
+        if self.transform:
+            sample = self.transform(sample, 'test')
         return sample
 
     def Read3DData(self, modal_path):

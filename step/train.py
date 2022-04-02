@@ -13,6 +13,7 @@ from losses.common import Losses
 from tqdm import tqdm
 from data import Dataloader2d
 from utils.logger import Logger
+from utils.save_data import *
 from metrics.dice import Compute_MeanDice, DiceCoefficient
 
 def validate(config, model, epoch, val_dice):
@@ -37,11 +38,18 @@ def validate(config, model, epoch, val_dice):
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
-            for i in range(inputs.shape[1]):
-                outputs = model(inputs[:,i,:])
-                outputs = outputs['MU'][0]
-                preds.append(outputs[np.newaxis,:])
-            preds = torch.cat(preds, axis=0)[:,0,:]
+            print(labels.shape)
+            if config['Data']['Dimension'] == '2':
+                for i in range(inputs.shape[1]):
+                    outputs = model(inputs[:,i,:])
+                    if config['Data']['Save']:
+                        save_data(i, (labels, outputs))
+                    preds.append(outputs[np.newaxis,:])
+                preds = torch.cat(preds, axis=0)[:,0,:]
+            elif config['Data']['Dimension'] == '3':
+                preds = model(inputs)
+            else:
+                raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
             dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
     print(f'Dice is {dice/len(validate_load)}')
 
@@ -90,7 +98,8 @@ def trainer(config):
 
 
             dice, loss = 0,0
-            if len(outputs) > 0:
+            # dice, loss =
+            if isinstance(outputs, dict):
                 for i in outputs.keys():
                     total_loss = criterion(outputs[i][0], labels, outputs[i][1])
                     loss += sum(total_loss.values())

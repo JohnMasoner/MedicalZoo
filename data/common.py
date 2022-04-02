@@ -37,11 +37,11 @@ def dataset(config, set_type):
         elif isinstance(data_type, list): # to judge the mono-modal or multi-modal, if multi-modal is True
             if set_type == 'train':
                 adjacent_layer =None if config['Data']['AdjacentLayer'].lower() == 'none' or not config['Data']['AdjacentLayer'].isdigit() else int(config['Data']['AdjacentLayer'])
-                train_dataset = Dataloader2d.MultiMedDatasets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer, transform=Transforms.RandCropData(320))
+                train_dataset = Dataloader2d.MultiMedDatasets2D(config['Paths']['file_dir'], file_mode='NPY_train', data_type=data_type, adjacent_layer=adjacent_layer, transform = transform(config))
                 train_dataload = torch.utils.data.DataLoader(train_dataset, batch_size=int(config['Data']['BatchSize']), num_workers = int(config['Data']['NumWorkers']), shuffle=True)
                 return train_dataload
             elif set_type == 'test':
-                validate_dataset = Dataloader2d.MultiMedDatasets2DTest(config['Paths']['file_dir'], file_mode='NPY_val', data_type=data_type)
+                validate_dataset = Dataloader2d.MultiMedDatasets2DTest(config['Paths']['file_dir'], file_mode='NPY_val', data_type=data_type, transform = Transforms.RandCropData(int(config['Data']['CropSize'])))
                 validate_load = torch.utils.data.DataLoader(validate_dataset, batch_size= 1)
                 return validate_load
             else:

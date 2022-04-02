@@ -21,8 +21,26 @@ def network(config):
         import sys
         sys.path.append('..')
         from new_net import ModelFuse
-        return ModelFuse.Module(multi_channels=1).cuda()
+        return ModelFuse.Module(multi_channels=None).cuda()
     elif net == 'unetr':
-        return monai.networks.nets.UNETR(in_channels=int(config['Model']['in_channels']), out_channels=int(config['Model']['out_channels'], image_size=(32,500,500)).cuda()
+        return monai.networks.nets.UNETR(in_channels=int(config['Model']['in_channels']), out_channels=int(config['Model']['out_channels']), img_size=(320,320), spatial_dims=2).cuda()
+    elif net == 'vit':
+        return monai.networks.nets.ViT(in_channels=int(config['Model']['in_channels']), img_size= (320,320), pos_embed='conv', patch_size= 16, spatial_dims=2).cuda()
+    elif net == 'vh':
+        import sys
+        sys.path.append('..')
+        from new_net.Transformer import VHUFormer
+        return VHUFormer.VHUFormer(in_chns=int(config['Model']['in_channels']), num_classes= int(config['Model']['out_channels']), num_layers=50,embed_dim=768, hidden_features=400, img_size= (320,320), patch_size= (16,16), hypbird=True).cuda()
+    elif net == 'transmed':
+        import sys
+        sys.path.append('..')
+        from new_net.Transformer import TransMed
+        return TransMed.TransMed(in_chns=int(config['Model']['in_channels']), root_u_out_chns=256).cuda()
+    elif net == 'transfuse':
+        import sys
+        sys.path.append('..')
+        from new_net.Transformer import TransFuse
+        return TransFuse.DownBlockTrans(4, 16, embed_dim=512).cuda()
+
     else:
         raise Exception('Unknown network type')

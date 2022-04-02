@@ -7,15 +7,19 @@ class RandCropData:
         self.roi_size = roi_size
 
     def random_size(self, img_size):
-        left = random.randint(0,img_size[1] - self.roi_size - 1)
-        bottom = random.randint(0, img_size[1] - self.roi_size - 1)
+        # left = random.randint(0,img_size[1] - self.roi_size - 1)
+        # bottom = random.randint(0, img_size[1] - self.roi_size - 1)
+        left = random.randint(0,max(img_size) - self.roi_size - 1)
+        bottom = random.randint(0, max(img_size) - self.roi_size - 1)
         return (left, bottom)
 
-    def crop_data(self, img, left_top_point):
-        return img[:,left_top_point[0]:left_top_point[0]+self.roi_size,left_top_point[1]:left_top_point[1]+self.roi_size]
-
-    def __call__(self, sample):
+    def crop_data(self, img, left_top_point, types):
+        if types == 'train':
+            return img[:,left_top_point[0]:left_top_point[0]+self.roi_size,left_top_point[1]:left_top_point[1]+self.roi_size]
+        elif types == 'test':
+            return img[:,:,left_top_point[0]:left_top_point[0]+self.roi_size,left_top_point[1]:left_top_point[1]+self.roi_size]
+    def __call__(self, sample, types='train'):
         left_top_point = self.random_size(sample['label'].shape)
         for i in list(sample.keys()):
-            sample[i] = self.crop_data(sample[i], left_top_point)
+            sample[i] = self.crop_data(sample[i], left_top_point, types)
         return sample
