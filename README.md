@@ -42,6 +42,8 @@ Of course, no one template will serve all projects since your needs may be diffe
 <!--Recent Updates-->
 ## Recent Updates
 
+* 2022-04-02: Added some script. examples, save data.
+* 2022-04-02: Mean the metrics
 * 2022-03-30: Added 3dDataloader
 * 2022-03-25: Added Configuration README
 * 2022-03-24: Added License section and README.md
@@ -91,9 +93,9 @@ _For more information about configuration, Please [Config ReadMe](https://github
 ## Roadmap
 
 * [ ] Add a blog to introduce the project
-* [ ] Add More Modules to better training your model
-* [ ] Add 3D Modeling
-* [ ] Add more data augmentation
+* [x] Add More Modules to better training your model(More TODO!)
+* [x] Add 3D Modeling
+* [x] Add more data augmentation
 * [ ] Multi-language Support
   * [ ] Chinese
   * [ ] Chinese (Traditional)
