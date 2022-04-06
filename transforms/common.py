@@ -24,6 +24,9 @@ def append_class_module(transform_modules, config):
         if 'crop' in i.lower():
             crop_size = config['Data']['CropSize']
             i = i + '(' + crop_size + ')'
+        if 'mask' in i.lower():
+            num_patches = config['Data']['MaskPatchNum']
+            i = i + '(' + num_patches + ')'
         transform_list.append(eval(i))
     return transform_list
 
@@ -44,7 +47,8 @@ def transform(config):
         else:
             # To parase the config transform, using '!@#$%^&*' to split the different funcitons, Return a list.
             transform_type = [transform_type] if len(list(re.sub('[!@#$%^&*]', '', transform_type).split(','))) == 1 else list(re.sub('[!@#$%^&*]', '', transform_type).split(','))
-
+            transform_type = [i.replace(' ','') for i in transform_type]
             include_transforms = find_class_module(Transforms)
+            print(transform_type)
             assert False not in [i.lower() in lower_list(include_transforms) for i in transform_type], 'Unsupported transform type exists'
             return monai.transforms.Compose(append_class_module(transform_type, config))

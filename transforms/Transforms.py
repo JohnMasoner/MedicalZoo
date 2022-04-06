@@ -53,9 +53,40 @@ class LabelCrop:
             return img[:,:,left_top_point[0]:left_top_point[0]+self.roi_size,left_top_point[1]:left_top_point[1]+self.roi_size]
 
     def __call__(self, sample, types='train'):
+        if types =='test':
+            return sample
         label_point = self.read_label_point(sample['label'])
         left_top_point = self.get_crop_point(label_point)
         for i in list(sample.keys()):
             sample[i] = self.crop_data(sample[i], left_top_point, types)
+        return sample
+
+class GenerateMask:
+    def __init__(self, num_patches, prob:float=0.3):
+        self.num_patches = num_patches
+        self.prob = prob
+
+    def mask(self, data):
+        if float(data.max().item()) < 0:
+            return data
+        else:
+            if random.random() <= self.prob:
+                return data.quantile(0.5, keepdim=True)
+            else:
+                return data
+
+    def scan_data(self, data):
+        shape = data.shape[-1]
+        for i in range(shape // self.num_patches):
+            for j in range(shape // self.num_patches):
+                data[:, i*self.num_patches:(i+1)*self.num_patches, j*self.num_patches:(j+1)*self.num_patches] = self.mask(data[:, i*self.num_patches:(i+1)*self.num_patches, j*self.num_patches:(j+1)*self.num_patches])
+        return data
+
+    def __call__(self, sample):
+        for i in list(sample.keys()):
+            if i == 'label':
+                sample[i] = sample[i]
+            else:
+                sample[i] = self.scan_data(sample[i])
         return sample
 
