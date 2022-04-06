@@ -19,7 +19,10 @@ def save_data(idx,data):
     if not os.path.exists(lab_path):
         os.makedirs(lab_path)
         os.makedirs(pred_path)
-    lab = change(data[0][0]).permute(2,1,0).cpu().numpy() * 255
+    if len(data[0].shape) == 3:
+        lab = change(data[0]).permute(2,1,0).cpu().numpy() * 255
+    else:
+        lab = change(data[0][0]).permute(2,1,0).cpu().numpy() * 255
     img = change(data[1][0]).permute(2,1,0).cpu().numpy() * 255
     # print(lab.shape)
     cv2.imwrite(os.path.join(lab_path,f'{str(idx)}.png'),lab)

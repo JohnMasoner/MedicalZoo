@@ -19,6 +19,7 @@ def find_class_module(module)->list:
 
 def append_class_module(transform_modules, config):
     transform_list = []
+    print(transform_modules)
     for i in transform_modules:
         if 'crop' in i.lower():
             crop_size = config['Data']['CropSize']
@@ -46,4 +47,4 @@ def transform(config):
 
             include_transforms = find_class_module(Transforms)
             assert False not in [i.lower() in lower_list(include_transforms) for i in transform_type], 'Unsupported transform type exists'
-            return monai.transforms.Compose(append_class_module(include_transforms, config))
+            return monai.transforms.Compose(append_class_module(transform_type, config))

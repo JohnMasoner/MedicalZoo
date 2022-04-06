@@ -38,12 +38,11 @@ def validate(config, model, epoch, val_dice):
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
             labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
-            print(labels.shape)
             if config['Data']['Dimension'] == '2':
                 for i in range(inputs.shape[1]):
                     outputs = model(inputs[:,i,:])
                     if config['Data']['Save']:
-                        save_data(i, (labels, outputs))
+                        save_data(i, (labels[i,:], outputs))
                     preds.append(outputs[np.newaxis,:])
                 preds = torch.cat(preds, axis=0)[:,0,:]
             elif config['Data']['Dimension'] == '3':
