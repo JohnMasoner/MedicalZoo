@@ -32,7 +32,7 @@ class LabelCrop:
         label_data =  torch.where(label==1)
         if len(label_data[0]) == 0:
             return (0,256,256)
-        rnd_point = random.randint(0, len(label_data[0]))
+        rnd_point = random.randint(0, len(label_data[0])-1)
         return (0, label_data[1][rnd_point], label_data[2][rnd_point])
 
     def get_crop_point(self, data):

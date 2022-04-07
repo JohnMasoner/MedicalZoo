@@ -22,8 +22,8 @@ class Logger(object):
         self.viz = Visdom(port=port, use_incoming_socket=False, env=env)
         self.n_epochs = n_epochs
         self.batch_epochs = batch_epochs
-        self.batch = 0
-        # self.epoch = 1
+        self.batch = 1
+        self.epoch = 1
         self.loss_window = {}
         self.losses = {}
         self.images_window = {}
@@ -34,20 +34,23 @@ class Logger(object):
             if loss_name not in self.losses:
                 # print(losses[loss_name].item(), type(losses[loss_name]))
                 self.losses[loss_name] = losses[loss_name].item()
+                # self.losses[loss_name] = losses[loss_name].data[0]
             else:
                 self.losses[loss_name] += losses[loss_name].item()
-
+                # self.losses[loss_name] += losses[loss_name].date[0]
         # losses value
-        if (self.batch % 50) == 0:
-            for loss_name, loss in losses.items():
-                loss = loss.item()
+        # if (self.batch % self.batch_epochs) == 0:
+        if (self.batch % self.batch_epochs) == 0:
+            for loss_name, loss in self.losses.items():
                 if loss_name not in self.loss_window:
-                    self.loss_window[loss_name] = self.viz.line(X = np.array([self.batch]), Y=np.array([loss]), opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
+                    self.loss_window[loss_name] = self.viz.line(X = np.array([self.epoch]), Y=np.array([loss/self.batch]), opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
                 else:
-                    self.viz.line(X = np.array([self.batch]), Y=np.array([loss]), win=self.loss_window[loss_name], update='append',opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
+                    self.viz.line(X = np.array([self.epoch]), Y=np.array([loss/self.batch]), win=self.loss_window[loss_name], update='append',opts={'xlabel':'step', 'ylabel': loss_name, 'title': loss_name})
 
-            # self.epoch += 1
-            self.batch += 1
+                self.losses[loss_name] = 0
+
+            self.epoch += 1
+            self.batch = 1
         else:
             self.batch += 1
 
