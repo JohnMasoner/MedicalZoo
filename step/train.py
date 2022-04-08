@@ -28,6 +28,7 @@ def validate(config, model, epoch, val_dice):
     dice = 0
     validate_load = dataset(config, 'test')
     model.eval()
+    inference = monai.inferers.SlidingWindowInferer(roi_size=320)
     print('Validation----------------------------------')
     with torch.no_grad():
         validate_load = tqdm(validate_load, desc='Validation')
@@ -40,7 +41,8 @@ def validate(config, model, epoch, val_dice):
             preds = []
             if config['Data']['Dimension'] == '2':
                 for i in range(inputs.shape[1]):
-                    outputs = model(inputs[:,i,:])
+                    # outputs = model(inputs[:,i,:])
+                    outputs = inference(inputs[:,i,:], model)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
                     preds.append(outputs[np.newaxis,:])
@@ -56,7 +58,7 @@ def validate(config, model, epoch, val_dice):
     # store best loss and save a model checkpoint
     torch.save({"arch": "Mono_2d", "model": model.state_dict()},save_path,)
     print("Saved checkpoint to: %s" % save_path)
-    if dice/len(validate_load) > val_dice:
+    if dice/len(validate_load) > val_dice and epoch !=0 :
         save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], f"{config['DEFAULT']['Name']}_checkpoint_best_model.pt")
         torch.save({"acc":dice/len(validate_load),"arch": "Mono_2d", "model": model.state_dict()},save_path,)
         return dice/len(validate_load)
