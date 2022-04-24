@@ -57,3 +57,25 @@ class DiceLoss(nn.Module):
             class_wise_dice.append(1.0 - dice.item())
             loss += dice * weight[i]
         return loss / self.n_classes
+
+
+class MultiClassDiceCoefficient():
+    def __init__(self, n_classes):
+        super(DiceLoss, self).__init__()
+        self.n_classes = n_classes
+
+    def _one_hot_encoder(self, input_tensor):
+        tensor_list = []
+        for i in range(self.n_classes):
+            temp_prob = input_tensor == i * torch.ones_like(input_tensor)
+            tensor_list.append(temp_prob)
+        output_tensor = torch.cat(tensor_list, dim=1)
+        return output_tensor.float()
+
+    def __call__(self,inputs, target):
+        target = _one_hot_encoder(target)
+        dice = 0
+        for i in range(0, self.n_classes):
+            dice = DiceCoefficient(inputs, target).item()
+            dice += dice
+        return dice
