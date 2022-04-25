@@ -20,7 +20,7 @@ def DiceCoefficient(y_pred, y_true, smooth=1e-6):
     return (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
 
 
-class DiceLoss(nn.Module):
+class DiceLoss(torch.nn.Module):
     def __init__(self, n_classes):
         super(DiceLoss, self).__init__()
         self.n_classes = n_classes
