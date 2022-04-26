@@ -75,10 +75,10 @@ def trainer(config):
 
             # logger
             labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
-            outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
+            outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
             logger.log(
                 losses = total_loss,
-                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()}
+                images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': outputs}
             )
         lr_scheduler.step()
         if epoch % 2 == 0:
