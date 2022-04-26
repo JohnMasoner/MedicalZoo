@@ -24,7 +24,7 @@ def validate(config, model, epoch, val_dice):
     dice = 0
     validate_load = dataset(config, 'test')
     model.eval()
-    inference = monai.inferers.SlidingWindowInferer(roi_size=320)
+    inference = monai.inferers.SlidingWindowInferer(roi_size=int(config['Data']['CropSize']))
     print('Validation----------------------------------')
     with torch.no_grad():
         validate_load = tqdm(validate_load, desc='Validation')
@@ -33,20 +33,25 @@ def validate(config, model, epoch, val_dice):
                 inputs = MultiLoader(data.keys(), data,'val')
             else:
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
-            labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
+            # labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
+            labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
+            labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(2,-1)[...,-1].type(torch.FloatTensor).cuda(non_blocking=True)
             preds = []
             if config['Data']['Dimension'] == '2':
                 for i in range(inputs.shape[1]):
                     # outputs = model(inputs[:,i,:])
                     outputs = inference(inputs[:,i,:], model)
+                    outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
                     preds.append(outputs[np.newaxis,:])
                 preds = torch.cat(preds, axis=0)[:,0,:]
             elif config['Data']['Dimension'] == '3':
                 preds = model(inputs)
+                preds.append(outputs[np.newaxis,:])
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
+            labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
             dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
     print(f'Dice is {dice/len(validate_load)}')
 

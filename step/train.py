@@ -47,7 +47,9 @@ def trainer(config):
                 inputs = MultiLoader(data.keys(), data)
             else:
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
-            labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)
+            labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
+            # print(labels.shape)
+            labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(1,-1)[...,-1].type(torch.FloatTensor).cuda(non_blocking=True)
 
             outputs = model(inputs)
 
@@ -72,6 +74,8 @@ def trainer(config):
             optimizer.step()
 
             # logger
+            labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
+            outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
             logger.log(
                 losses = total_loss,
                 images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': (outputs.sigmoid()>0.5).float()}
