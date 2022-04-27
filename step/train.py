@@ -64,7 +64,10 @@ def trainer(config):
             else:
                 assert (outputs.shape == labels.shape)
                 total_loss = criterion(outputs, labels)
-                dice, loss = DiceCoefficient((outputs.sigmoid()>0.5).float(), labels), sum(total_loss.values())
+                # cal dice, make one_hot to labels embeding
+                outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
+                labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
+                dice, loss = DiceCoefficient(outputs, labels), sum(total_loss.values())
                 total_loss['loss'],total_loss['dice'] = loss, dice
 
 
@@ -74,8 +77,8 @@ def trainer(config):
             optimizer.step()
 
             # logger
-            labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
-            outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
+            # labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
+            # outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
             logger.log(
                 losses = total_loss,
                 images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': outputs}

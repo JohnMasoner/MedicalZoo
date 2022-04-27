@@ -41,6 +41,7 @@ def validate(config, model, epoch, val_dice):
                 for i in range(inputs.shape[1]):
                     # outputs = model(inputs[:,i,:])
                     outputs = inference(inputs[:,i,:], model)
+                    outputs = (outputs.sigmoid()>0.5).float()
                     outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
@@ -52,7 +53,7 @@ def validate(config, model, epoch, val_dice):
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
             labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
-            dice += DiceCoefficient(labels, (preds.sigmoid()>0.5).float())
+            dice += DiceCoefficient(labels, preds)
     print(f'Dice is {dice/len(validate_load)}')
 
     save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], "%s_checkpoint_%04d.pt" % (config['DEFAULT']['Name'], epoch))
