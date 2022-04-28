@@ -33,15 +33,13 @@ def validate(config, model, epoch, val_dice):
                 inputs = MultiLoader(data.keys(), data,'val')
             else:
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
-            # labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
-            labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
-            labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(2,-1)[...,-1].type(torch.FloatTensor).cuda(non_blocking=True)
+            labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
             if config['Data']['Dimension'] == '2':
                 for i in range(inputs.shape[1]):
                     # outputs = model(inputs[:,i,:])
                     outputs = inference(inputs[:,i,:], model)
-                    outputs = (outputs.sigmoid()>0.5).float()
+                    # outputs = (outputs.sigmoid()>0.5).float()
                     outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
@@ -49,10 +47,11 @@ def validate(config, model, epoch, val_dice):
                 preds = torch.cat(preds, axis=0)[:,0,:]
             elif config['Data']['Dimension'] == '3':
                 preds = model(inputs)
+                outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                 preds.append(outputs[np.newaxis,:])
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
-            labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
+            # labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
             dice += DiceCoefficient(labels, preds)
     print(f'Dice is {dice/len(validate_load)}')
 

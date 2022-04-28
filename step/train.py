@@ -77,8 +77,6 @@ def trainer(config):
             optimizer.step()
 
             # logger
-            # labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
-            # outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
             logger.log(
                 losses = total_loss,
                 images = {config['Data']['DataType']:inputs, 'labels':labels, 'preds': outputs}
