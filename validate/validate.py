@@ -40,18 +40,22 @@ def validate(config, model, epoch, val_dice):
                     # outputs = model(inputs[:,i,:])
                     outputs = inference(inputs[:,i,:], model)
                     # outputs = (outputs.sigmoid()>0.5).float()
-                    outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
+                    if int(config['DEFAULT']['NumClasses']) > 1:
+                        outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
                     preds.append(outputs[np.newaxis,:])
                 preds = torch.cat(preds, axis=0)[:,0,:]
             elif config['Data']['Dimension'] == '3':
                 preds = model(inputs)
-                outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
+                if int(config['DEFAULT']['NumClasses']) > 1:
+                    outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                 preds.append(outputs[np.newaxis,:])
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
             # labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
+            if int(config['DEFAULT']['NumClasses']) == 1:
+                preds = (preds.sigmoid()).float()
             dice += DiceCoefficient(labels, preds)
     print(f'Dice is {dice/len(validate_load)}')
 

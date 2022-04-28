@@ -47,9 +47,13 @@ def trainer(config):
                 inputs = MultiLoader(data.keys(), data)
             else:
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
-            labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
-            # print(labels.shape)
-            labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(1,-1)[...,-1].type(torch.FloatTensor).cuda(non_blocking=True)
+
+            if int(config['DEFAULT']['NumClasses']) > 1:
+                labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
+                # print(labels.shape)
+                labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(1,-1)[...,-1].type(torch.FloatTensor).cuda(non_blocking=True)
+            else:
+                labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)
 
             outputs = model(inputs)
 
@@ -64,9 +68,12 @@ def trainer(config):
             else:
                 assert (outputs.shape == labels.shape)
                 total_loss = criterion(outputs, labels)
-                # cal dice, make one_hot to labels embeding
-                outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
-                labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
+                if int(config['DEFAULT']['NumClasses']) > 1:
+                    # cal dice, make one_hot to labels embeding
+                    outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
+                    labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
+                else:
+                    outputs = (outputs.sigmoid()>0.5).float()
                 dice, loss = DiceCoefficient(outputs, labels), sum(total_loss.values())
                 total_loss['loss'],total_loss['dice'] = loss, dice
 
