@@ -57,6 +57,11 @@ def trainer(config):
 
             outputs = model(inputs)
 
+            if config['Data']['AdjacentLayer'].isdigit():
+                adjacent_layer = int(config['Data']['AdjacentLayer'])
+                labels = labels[:, adjacent_layer:adjacent_layer+1, :]
+                inputs = inputs[:, adjacent_layer:adjacent_layer+1, :]
+
 
             dice, loss = 0,0
             # dice, loss =

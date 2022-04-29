@@ -158,10 +158,10 @@ class MultiMedDatasets2D(MonoMedDataSets2DTest):
 
 
 class MultiMedDatasets2DTest(MonoMedDataSets2DTest):
-    def __init__(self, file_dir:str=None, file_mode = None, data_type = None, transform= None):
+    def __init__(self, file_dir:str=None, file_mode = None, data_type = None, transform= None, adjacent_layer=None):
         self.file_dir = os.path.join(file_dir, file_mode)
         self.label = sorted(glob.glob(os.path.join(self.file_dir,'*/label/')))
-        self.adjacent_layer = None
+        self.adjacent_layer = adjacent_layer
         self.data_type = data_type
         self.transform = transform
 
@@ -178,7 +178,12 @@ class MultiMedDatasets2DTest(MonoMedDataSets2DTest):
         data_list = [os.path.join(modal_path,f'{str(i)}.npy') for i in range(len(glob.glob(os.path.join(modal_path,'*'))))]
         data = []
         for idx, i in enumerate(data_list):
-            data.append(self.ReadData(i)[np.newaxis,np.newaxis,:])
+            new_data = self.ReadData(i)
+            if len(new_data.shape) ==2:
+                new_data = new_data[np.newaxis,np.newaxis,:]
+            else:
+                new_data = new_data[np.newaxis,:]
+            data.append(new_data)
         data = self.Normalization(np.vstack(data), 4)
 
         return data

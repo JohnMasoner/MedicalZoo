@@ -42,6 +42,7 @@ Of course, no one template will serve all projects since your needs may be diffe
 <!--Recent Updates-->
 ## Recent Updates
 
+* 2022-04-29: support multi-modal medical image segmentation and adjacent layer.
 * 2022-04-26: support multi-classes and upload inference code.
 * 2022-04-24: update multi-clases metrics.
 * 2022-04-07: optimized logger code. Mean the metrics.

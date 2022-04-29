@@ -54,6 +54,10 @@ def validate(config, model, epoch, val_dice):
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
             # labels = torch.argmax(labels, 2).unsqueeze(1).type(torch.FloatTensor)
+
+            if config['Data']['AdjacentLayer'].isdigit():
+                adjacent_layer = int(config['Data']['AdjacentLayer'])
+                labels = labels[:, adjacent_layer:adjacent_layer+1, :]
             if int(config['DEFAULT']['NumClasses']) == 1:
                 preds = (preds.sigmoid()).float()
             dice += DiceCoefficient(labels, preds)
