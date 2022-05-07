@@ -74,12 +74,15 @@ def trainer(config):
                 assert (outputs.shape == labels.shape)
                 total_loss = criterion(outputs, labels)
                 if int(config['DEFAULT']['NumClasses']) > 1:
+                    outputs = (outputs.sigmoid()>0.5).float()
+                    dice, loss = DiceCoefficient(outputs, labels), sum(total_loss.values())
                     # cal dice, make one_hot to labels embeding
-                    outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
+                    # outputs = torch.argmax((outputs.sigmoid()>0.5).float(), 1).unsqueeze(1).type(torch.FloatTensor)
+                    outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
                 else:
                     outputs = (outputs.sigmoid()>0.5).float()
-                dice, loss = DiceCoefficient(outputs, labels), sum(total_loss.values())
+                    dice, loss = DiceCoefficient(outputs, labels), sum(total_loss.values())
                 total_loss['loss'],total_loss['dice'] = loss, dice
 
 

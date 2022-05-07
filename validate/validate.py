@@ -33,23 +33,27 @@ def validate(config, model, epoch, val_dice):
                 inputs = MultiLoader(data.keys(), data,'val')
             else:
                 inputs = data["image"].type(torch.FloatTensor).cuda(non_blocking=True)
-            labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
+            if int(config['DEFAULT']['NumClasses']) > 1:
+                labels = data["label"].type(torch.LongTensor).cuda(non_blocking=True)
+                labels = torch.nn.functional.one_hot(labels, num_classes= int(config['DEFAULT']['NumClasses'])).transpose(2,-1).type(torch.FloatTensor).cuda(non_blocking=True)[0][...,-1]
+            else:
+                labels = data["label"].type(torch.FloatTensor).cuda(non_blocking=True)[0]
             preds = []
             if config['Data']['Dimension'] == '2':
                 for i in range(inputs.shape[1]):
                     # outputs = model(inputs[:,i,:])
                     outputs = inference(inputs[:,i,:], model)
                     # outputs = (outputs.sigmoid()>0.5).float()
-                    if int(config['DEFAULT']['NumClasses']) > 1:
-                        outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
+                    # if int(config['DEFAULT']['NumClasses']) > 1:
+                        # outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                     if config['Data']['Save']:
                         save_data(i, (labels[i,:], outputs))
                     preds.append(outputs[np.newaxis,:])
                 preds = torch.cat(preds, axis=0)[:,0,:]
             elif config['Data']['Dimension'] == '3':
                 preds = model(inputs)
-                if int(config['DEFAULT']['NumClasses']) > 1:
-                    outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
+                # if int(config['DEFAULT']['NumClasses']) > 1:
+                    # outputs = torch.argmax(outputs, 1).unsqueeze(1).type(torch.FloatTensor)
                 preds.append(outputs[np.newaxis,:])
             else:
                 raise ValueError(f'Dimension is not unsupported. It must be 2 or 3')
@@ -58,8 +62,7 @@ def validate(config, model, epoch, val_dice):
             if config['Data']['AdjacentLayer'].isdigit():
                 adjacent_layer = int(config['Data']['AdjacentLayer'])
                 labels = labels[:, adjacent_layer:adjacent_layer+1, :]
-            if int(config['DEFAULT']['NumClasses']) == 1:
-                preds = (preds.sigmoid()).float()
+            preds = (preds.sigmoid()>0.5).float()
             dice += DiceCoefficient(labels, preds)
     print(f'Dice is {dice/len(validate_load)}')
 
