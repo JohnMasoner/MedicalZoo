@@ -1,6 +1,6 @@
+import re
 import monai
 import torch
-import re
 
 class Losses(object):
     def __init__(self,config):
@@ -11,6 +11,7 @@ class Losses(object):
         Returns:
         '''
         loss_type = config['Losses']['losses']
+        self.num_classes = int(config['DEFAULT']['NumClasses'])
         loss_type = loss_type if len(list(re.sub('[!@#$%^&*]', '', loss_type).split(','))) == 1 else list(re.sub('[!@#$%^&*]', '', loss_type).split(','))
         if len(loss_type)  <= 0:
             raise ValueError('loss_type must be greater than zero')
@@ -30,11 +31,14 @@ class Losses(object):
 
         self.loss_dict = loss_dict
 
-    def __call__(self,predictions:torch.Tensor, labels:torch.Tensor, weights:int=1):
+    def __call__(self, predictions:torch.Tensor, labels:torch.Tensor, weights:int=1):
         predictions = predictions.sigmoid()
         # predictions = torch.argmax(predictions, 1).unsqueeze(1).type(torch.FloatTensor)
         # labels = torch.argmax(labels, 1).unsqueeze(1).type(torch.FloatTensor)
         total_loss_dict = {}
         for i in self.loss_dict.keys():
-            total_loss_dict[i+'_loss'] = self.loss_dict[i](predictions, labels) * weights
+            losses = 0
+            for classes in range(self.num_classes):
+                losses += self.loss_dict[i](predictions[:,classes:classes+1,:], labels[:,classes:classes+1,:]) * weights
+            total_loss_dict[i+'_loss'] = losses / self.num_classes
         return total_loss_dict
