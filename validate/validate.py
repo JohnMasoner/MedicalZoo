@@ -63,7 +63,7 @@ def validate(config, model, epoch, val_dice):
                 adjacent_layer = int(config['Data']['AdjacentLayer'])
                 labels = labels[:, adjacent_layer:adjacent_layer+1, :]
             preds = (preds.sigmoid()>0.5).float()
-            dice += DiceCoefficient(labels, preds)
+            dice += DiceCoefficient(labels, preds, num_classes=int(config['DEFAULT']['NumClasses']))
     print(f'Dice is {dice/len(validate_load)}')
 
     save_path = os.path.join(config['Paths']['checkpoint_dir'], config['DEFAULT']['Name'], "%s_checkpoint_%04d.pt" % (config['DEFAULT']['Name'], epoch))

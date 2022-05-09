@@ -13,11 +13,22 @@ def Compute_MeanDice(y_pred: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     dices = (2 * intersect + 1e-6) / (denominator + 1e-6)
     return dices.mean().item()
 
-def DiceCoefficient(y_pred, y_true, smooth=1e-6):
-    y_true_f = torch.flatten(y_true).cuda()
-    y_pred_f = torch.flatten(y_pred).cuda()
-    intersection = torch.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
+def DiceCoefficient(y_pred, y_true, smooth=1e-6, num_classes=1):
+    if num_classes == 1:
+        y_true_f = torch.flatten(y_true).cuda()
+        y_pred_f = torch.flatten(y_pred).cuda()
+        intersection = torch.sum(y_true_f * y_pred_f)
+        dice = (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
+    else:
+        dice = 0
+        for i in range(1, num_classes):
+            y_true_f = torch.flatten(y_true[:,i,:]).cuda()
+            y_pred_f = torch.flatten(y_pred[:,i,:]).cuda()
+            intersection = torch.sum(y_true_f * y_pred_f)
+            dice_ = (2. * intersection + smooth) / (torch.sum(y_true_f) + torch.sum(y_pred_f) + smooth)
+            dice += dice_
+        dice = dice / num_classes
+    return dice
 
 
 class DiceLoss(torch.nn.Module):
