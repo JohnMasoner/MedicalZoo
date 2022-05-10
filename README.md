@@ -144,7 +144,7 @@ Mason Ma - masoner6429@gmail.com
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
+This project was inspired by the following projects:
 
 * [MedicalZooPytorch](https://github.com/black0017/MedicalZooPytorch)
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template)
