@@ -2,6 +2,7 @@
 .ipynb_checkpoints
 **/.ipynb_checkpoints/*
 *__pycache__*
+*ini*
 /logs
 /checkpoints
 /config/*
