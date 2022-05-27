@@ -6,6 +6,7 @@
 /logs
 /checkpoints
 /config/*
+/save/
 /new_net/*
 *img*
 step/cross_model.py
