@@ -5,9 +5,11 @@
 *ini*
 /logs
 /checkpoints
-/config/*
-/save/
-/new_net/*
+config/
+save/
+new_net/*
 *img*
 step/cross_model.py
-/optimizer/*
+**/optimizer/**
+transforms/*
+data/*
