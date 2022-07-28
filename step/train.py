@@ -71,7 +71,7 @@ def trainer(config):
                     loss += sum(total_loss.values())
                 outputs = outputs['MU'][0]
             else:
-                assert (outputs.shape == labels.shape)
+                assert (outputs.shape == labels.shape), f'the outputs shape is {outputs.shape}, labels shape is {labels.shape}, plz make sure they r equal'
                 total_loss = criterion(outputs, labels)
                 if int(config['DEFAULT']['NumClasses']) > 1:
                     outputs = (outputs.sigmoid()>0.5).float()
