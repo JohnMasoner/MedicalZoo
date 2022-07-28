@@ -1,4 +1,4 @@
-from step import train, cross_model
+from step import train
 import sys
 import configparser
 import numpy as np
