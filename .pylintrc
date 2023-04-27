@@ -22,8 +22,10 @@ max-public-methods=20
 [FORMAT]
 max-line-length=120
 
+; indent-string='    '
+
 [MESSAGES]
-disable=logging-fstring-interpolation, import-error, missing-module-docstring, missing-raises-doc, duplicate-code, fixme, unnecessary-lambda-assignment
+disable=logging-fstring-interpolation, import-error, missing-module-docstring, missing-raises-doc, duplicate-code, fixme, unnecessary-lambda-assignment, missing-type-doc, missing-param-doc, broad-exception-caught, invalid-name
 
 [SIMILARITIES]
 # Minimum lines number of a similarity.
@@ -42,3 +44,6 @@ ignore-signatures=no
 # system, and so shouldn't trigger E1101 when accessed.
 generated-members=numpy.*, torch.*, onnx.*, onnxruntime.*
 ignored-modules=onnx.onnx_ml_pb2
+
+[design]
+max-locals = 40
