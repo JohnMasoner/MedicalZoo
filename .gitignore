@@ -1,0 +1,15 @@
+.vscode/
+.ipynb_checkpoints
+**/.ipynb_checkpoints/*
+*__pycache__*
+*ini*
+/logs
+/checkpoints
+config/
+save/
+new_net/*
+*img*
+step/cross_model.py
+**/optimizer/**
+transforms/*
+data/*

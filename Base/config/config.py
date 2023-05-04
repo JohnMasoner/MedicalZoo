@@ -43,6 +43,19 @@ _C.DATA.SAVE = False
 _C.DATA.SAVE_FILE = "/raid0/xxx/AdaptationDataset/save/"
 
 ########################
+# Dataset Preprocess definition
+########################
+_C.DATA_PREPARE = CN()
+_C.DATA_PREPARE.BASE_TYPE = "Custom"  # nnUNet or Custom
+_C.DATA_PREPARE.BASE_DIR = "/raid0/myk/Y064/NiiData/"
+_C.DATA_PREPARE.SAVE_DIR = "/raidnvme/myk/Y064/NPY"
+_C.DATA_PREPARE.SPACING = [1, 1, 3]
+_C.DATA_PREPARE.CROP_BACKGROUND = False
+_C.DATA_PREPARE.MODAL_NAME = ["CT", "T1", "T2", "T1C"]
+_C.DATA_PREPARE.LABEL_NAME = "label"
+_C.DATA_PREPARE.FILE_TYPE = ".nii.gz"
+
+########################
 # Model definition
 ########################
 _C.MODEL = CN()
@@ -128,11 +141,18 @@ def _update_config_from_file(config, cfg_file):
             )
     print(f"=> merge config from {cfg_file}")
     config.merge_from_file(cfg_file)
-    config.freeze()
+    # config.freeze()
 
 
 def update_config(config, args):  # pylint: disable=missing-docstring
     _update_config_from_file(config, args.cfg)
+
+
+def get_cfg_defaults():
+    """Get a yacs CfgNode object with default values for my_project."""
+    # Return a clone so that the defaults will not be altered
+    # This is for the "local variable" use pattern
+    return _C.clone()
 
 
 def get_config(args):  # pylint: disable=missing-docstring

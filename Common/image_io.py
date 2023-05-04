@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import SimpleITK as sitk
 
 
@@ -21,28 +22,53 @@ def load_nii_file(data_path):
     assert os.path.exists(
         data_path
     ), f"Could not find {data_path}, Please check your configuration"
-    try:
-        sitk_image = sitk.ReadImage(data_path)
+    # try:
+    sitk_image = sitk.ReadImage(data_path)
 
-        assert sitk_image is not None, f"Could not load {data_path}"
+    assert sitk_image is not None, f"Could not load {data_path}"
 
-        # origin = list(reversed(sitk_image.GetOrigin()))
-        # spacing = list(reversed(sitk_image.GetSpacing()))
-        spacing = sitk_image.GetSpacing()
-        origin = sitk_image.GetOrigin()
-        direction = sitk_image.GetDirection()
-        # direction = [direction[8], direction[4], direction[0]]
-        res = {
-            "sitk_image": sitk_image,
-            "npy_image": sitk.GetArrayFromImage(sitk_image),
-            "origin": origin,
-            "spacing": spacing,
-            "direction": direction,
-        }
-        return res
-    except Exception as err:
-        print(f"Exiting some errors in {data_path} \nThe error message: {err}")
-    return None
+    # origin = list(reversed(sitk_image.GetOrigin()))
+    # spacing = list(reversed(sitk_image.GetSpacing()))
+    spacing = sitk_image.GetSpacing()
+    origin = sitk_image.GetOrigin()
+    direction = sitk_image.GetDirection()
+    # direction = [direction[8], direction[4], direction[0]]
+    res = {
+        "sitk_image": sitk_image,
+        "npy_image": sitk.GetArrayFromImage(sitk_image),
+        "origin": origin,
+        "spacing": spacing,
+        "direction": direction,
+    }
+    return res
+
+
+def save_npy_file(npy_image, save_path, dim=2):
+    """
+    This function saves a numpy array as a .npy file in a specified directory.
+
+    Args:
+    npy_image: A numpy array containing the image data to be saved as an .npy file.
+    save_path: The path where the .npy file(s) will be saved. It can be a directory path or a file
+    path depending on the value of the 'dim' parameter.
+    dim: The dimensionality of the numpy array. It can be either 2 or 3. If it is 2, then the function
+    saves each 2D slice of the 3D numpy array as a separate .npy file in the specified directory. If it
+    is 3, then the. Defaults to 2
+
+    Returns:
+    nothing if the condition `len(os.listdir(save_path)) == npy_image.shape[0]` is true. Otherwise, it
+    saves each 2D slice of the `npy_image` array as a separate .npy file in the `save_path` directory
+    and returns nothing. If `dim` is 3, it creates the directory for `save_path` if it
+    """
+    if dim == 2:
+        os.makedirs(save_path, exist_ok=True)
+        if len(os.listdir(save_path)) == npy_image.shape[0]:
+            return
+        for i in range(npy_image.shape[0]):
+            np.save(os.path.join(save_path, f"{str(i)}.npy"), npy_image[i, :])
+    elif dim == 3:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        np.save(save_path, npy_image)
 
 
 def save_ct_from_sitk(sitk_image, save_path, sitk_type=None, use_compression=False):

@@ -19,11 +19,9 @@ class MedicalImageResampler:
             target_spacing: target spacing, source_spacing/target_spacing get zoom factor
             order:
         """
-        print(source_spacing, target_spacing, npy_image.shape)
         scale = np.array(source_spacing[::-1]) / np.array(target_spacing[::-1])
         zoom_factor = np.array(target_spacing[::-1]) / np.array(source_spacing[::-1])
         target_npy_image = zoom(npy_image, scale, order=order)
-        print(target_npy_image.shape, scale, zoom_factor)
         return target_npy_image, zoom_factor, scale
 
     @staticmethod
@@ -45,7 +43,6 @@ class MedicalImageResampler:
         (zoom_factor).
         """
         source_size = npy_image.shape
-        print(source_size)
         scale = np.array(target_size) / source_size
         zoom_factor = source_size / np.array(target_size)
         target_npy_image = zoom(npy_image, scale, order=order)
